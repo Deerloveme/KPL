@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPL选手猜猜猜</title>
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --success-color: #4CAF50;
+            --danger-color: #f44336;
+            --background-color: #faf5f5;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0 auto;
+            padding: 20px;
+            max-width: 1000px;
+            background-color: var(--background-color);
+        }
+
+        .game-panel {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .controls {
+            margin: 25px 0;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        input {
+            padding: 12px;
+            width: 220px;
+            border: 2px solid var(--primary-color);
+            border-radius: 25px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #ddf57d;
+            min-width: 100px;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .correct { background-color: #C8E6C9 !important; }
+        .incorrect { background-color: #FFCDD2 !important; }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .controls { flex-direction: column; }
+            input, button { width: 100%; }
+            table { display: block; overflow-x: auto; }
+            th, td { padding: 10px; font-size: 14px; }
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            z-index: 1001;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .player-profile {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .player-profile img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 15px;
+        }
+
+        .success-panel {
+            background: #C8E6C9;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-panel">
+        <h2>KPL选手猜猜猜</h2>
+        
+        <div class="controls">
+            <input type="text" placeholder="输入选手ID" id="playerInput" list="playerList">
+            <datalist id="playerList"></datalist>
+            <button onclick="handleGuess()">提交猜测</button>
+            <button onclick="fullResetGame()" style="background: var(--danger-color)">重新开始</button>
+        </div>
+
+        <div class="stats">
+            <p>本轮猜测：<span id="guessCount">0</span>/10</p>
+            <p>连续猜对：<span id="correctStreak">0</span> 次</p>
+        </div>
+
+        <div class="success-panel" id="successPanel">
+            <h3>🎉 猜对啦！</h3>
+            <button onclick="softReset()">继续挑战（保持连胜）</button>
+        </div>
+
+        <table id="historyTable">
+            <tr>
+                <th>选手ID</th>
+                <th>年龄</th>
+                <th>战队</th>
+                <th>冠军数</th>
+                <th>FMVP</th>
+            </tr>
+        </table>
+
+        <!-- 选手信息模态框 -->
+        <div class="modal" id="answerModal">
+            <div class="player-profile">
+                <img id="profileImg" src="default.jpg" alt="选手头像">
+                <h3 id="profileName"></h3>
+                <div class="profile-details">
+                    <p>🏆 冠军数: <span id="profileChampionships"></span></p>
+                    <p>🎖️ FMVP: <span id="profileFmvp"></span></p>
+                    <p>🏠 战队: <span id="profileTeam"></span></p>
+                    <p>🎂 年龄: <span id="profileAge"></span></p>
+                </div>
+            </div>
+            <button onclick="closeModal()" style="margin-top:15px;width:100%">关闭</button>
+        </div>
+        <div class="modal-overlay" id="modalOverlay"></div>
+    </div>
+
+    <script>
+        // 选手数据库
+        const players = [
+            { name: "一诺", age: 23, team: "成都AG超玩会", championships: 4, fmvp: "有", img: "yinuo.webp"},
+            { name: "钟意", age: 20, team: "成都AG超玩会", championships: 4, fmvp: "有", img: "yn.jpg"},
+            { name: "大帅", age: 21, team: "成都AG超玩会", championships: 3, fmvp: "无", img: "yn.jpg" },
+            { name: "花海", age: 24, team: "武汉eStarPro", championships: 7, fmvp: "有",img: "yn.jpg" },
+            { name: "长生", age: 21, team: "成都AG超玩会", championships: 4, fmvp: "有",img: "yn.jpg" },
+            { name: "fly", age: 25, team: "济南RW侠", championships: 8, fmvp: "有",img: "yn.jpg" },
+            { name: "梦岚", age: 21, team: "佛山DRG", championships: 0, fmvp: "无",img: "yn.jpg" },
+            { name: "小胖", age: 20, team: "重庆狼队", championships: 5, fmvp: "有",img: "yn.jpg" },
+        ];
+
+        // 初始化游戏
+        let currentPlayer;
+        let guessCount = 0;
+        let correctStreak = 0;
+        let history = [];
+
+        // DOM元素
+        const playerInput = document.getElementById('playerInput');
+        const datalist = document.getElementById('playerList');
+        
+        // 填充自动补全数据
+        players.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.name;
+            datalist.appendChild(option);
+        });
+
+        // 游戏逻辑
+        function initGame(keepStreak = false) {
+            if (!keepStreak) correctStreak = 0;
+            currentPlayer = players[Math.floor(Math.random() * players.length)];
+            guessCount = 0;
+            history = [];
+            updateStats();
+            clearHistory();
+            playerInput.focus();
+            document.getElementById('successPanel').style.display = 'none';
+            closeModal();
+        }
+
+        function handleGuess() {
+            const guessName = playerInput.value.trim();
+            const player = players.find(p => p.name === guessName);
+
+            if (!player) {
+                alert("⚠️ 未找到该选手");
+                playerInput.value = "";
+                return;
+            }
+
+            guessCount++;
+            history.unshift(createHistoryRecord(player));
+            updateHistoryTable();
+            checkGameStatus(player);
+            playerInput.value = "";
+            updateStats();
+        }
+
+        function createHistoryRecord(guess) {
+            return {
+                isCorrect: guess.name === currentPlayer.name,
+                details: {
+                    name: compareValue(guess.name),
+                    age: compareValue(guess.age, currentPlayer.age, true),
+                    team: compareValue(guess.team, currentPlayer.team),
+                    championships: compareValue(guess.championships, currentPlayer.championships, true),
+                    fmvp: compareValue(guess.fmvp, currentPlayer.fmvp)
+                }
+            };
+        }
+
+        function compareValue(guess, actual, isNumeric = false) {
+            return {
+                value: guess,
+                match: guess === actual,
+                hint: isNumeric ? 
+                    (guess > actual ? "过高" : guess < actual ? "过低" : "正确") : 
+                    (guess === actual ? "匹配" : "不匹配")
+            };
+        }
+
+        function updateHistoryTable() {
+            const table = document.getElementById("historyTable");
+            while(table.rows.length > 1) table.deleteRow(1);
+
+            history.slice(0, 10).forEach(record => {
+                const row = table.insertRow(1);
+                addHistoryCell(row, record.details.name.value, record.isCorrect);
+                ["age", "team", "championships", "fmvp"].forEach(field => {
+                    const cell = row.insertCell();
+                    cell.innerHTML = `${record.details[field].value}<br><small>${record.details[field].hint}</small>`;
+                    cell.className = record.details[field].match ? "correct" : "incorrect";
+                });
+            });
+        }
+
+        function checkGameStatus(guess) {
+            if (guess.name === currentPlayer.name) {
+                correctStreak++;
+                document.getElementById('successPanel').style.display = 'block';
+                showAnswer(true);
+            } else if (guessCount >= 10) {
+                showAnswer(false);
+                initGame();
+            }
+        }
+
+        function showAnswer(isSuccess) {
+            const modal = document.getElementById("answerModal");
+            const overlay = document.getElementById("modalOverlay");
+            
+            document.getElementById("profileName").textContent = currentPlayer.name;
+            document.getElementById("profileImg").src = currentPlayer.img || 'default.jpg';
+            document.getElementById("profileAge").textContent = currentPlayer.age;
+            document.getElementById("profileTeam").textContent = currentPlayer.team;
+            document.getElementById("profileChampionships").textContent = currentPlayer.championships;
+            document.getElementById("profileFmvp").textContent = currentPlayer.fmvp;
+
+            modal.style.display = "block";
+            overlay.style.display = "block";
+            
+            if(!isSuccess) {
+                alert(`正确答案是：${currentPlayer.name}`);
+                initGame();
+            }
+        }
+
+        // 辅助函数
+        function addHistoryCell(row, value, isCorrect = false) {
+            const cell = row.insertCell();
+            cell.textContent = value;
+            if (isCorrect) cell.style.backgroundColor = "#C8E6C9";
+        }
+
+        function updateStats() {
+            document.getElementById("guessCount").textContent = guessCount;
+            document.getElementById("correctStreak").textContent = correctStreak;
+        }
+
+        function clearHistory() {
+            const table = document.getElementById("historyTable");
+            while(table.rows.length > 1) table.deleteRow(1);
+        }
+
+        function closeModal() {
+            document.getElementById("answerModal").style.display = "none";
+            document.getElementById("modalOverlay").style.display = "none";
+        }
+
+        function softReset() {
+            initGame(true);
+            closeModal();
+        }
+
+        function fullResetGame() {
+            if(confirm("确定要重新开始吗？当前连胜将会清零！")) {
+                correctStreak = 0;
+                initGame();
+            }
+        }
+
+        // 事件监听
+        playerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleGuess();
+        });
+
+        document.getElementById('modalOverlay').addEventListener('click', closeModal);
+
+        // 启动游戏
+        initGame();
+    </script>
+</body>
+</html>
