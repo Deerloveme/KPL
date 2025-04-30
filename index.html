@@ -261,6 +261,144 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
+
+    /* 横屏适配 */
+@media (orientation: landscape) and (max-width: 767px) {
+    body {
+        padding: 5px;
+        max-width: 100%;
+    }
+
+    .game-panel {
+        padding: 15px;
+        min-height: 90vh;
+    }
+
+    .controls {
+        flex-direction: row;
+        gap: 10px;
+    }
+
+    input, button {
+        padding: 8px 12px;
+        font-size: 14px;
+        width: auto;
+        flex: 1;
+    }
+
+    table {
+        display: table;
+        overflow-x: auto;
+        font-size: 12px;
+    }
+
+    th, td {
+        padding: 8px;
+        min-width: 60px;
+    }
+
+    /* 优化选手信息模态框 */
+    .modal {
+        max-width: 90%;
+        padding: 15px;
+    }
+
+    .player-profile img {
+        width: 60px;
+        height: 60px;
+    }
+
+    .profile-details p {
+        margin: 5px 0;
+        font-size: 14px;
+    }
+
+    /* 图鉴网格适配 */
+    .gallery-grid {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 10px;
+    }
+
+    .player-card img {
+        width: 50px;
+        height: 50px;
+    }
+
+    /* 工具栏优化 */
+    .toolbar {
+        top: 10px;
+        right: 10px;
+    }
+
+    .toolbar button {
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+
+    /* 历史表格滚动优化 */
+    #historyTable {
+        display: block;
+        overflow-x: auto;
+        max-width: 100%;
+    }
+}
+
+/* 竖屏特定样式 */
+@media (orientation: portrait) and (max-width: 767px) {
+    /* 保留原有竖屏样式 */
+    .gallery-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* 横屏模式专用适配 */
+@media (orientation: landscape) and (max-width: 767px) {
+  body {
+    /* 允许浏览器自动调整 */
+    -webkit-text-size-adjust: auto;
+    text-size-adjust: auto;
+    
+    /* 基础字体使用视口单位 */
+    font-size: calc(14px + 0.2vw);
+  }
+
+  /* 需要固定大小的容器 */
+  .game-panel, .modal {
+    /* 限制文本缩放 */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    
+    /* 最小字体保护 */
+    font-size: max(14px, 1.2vh);
+  }
+
+  /* 输入控件特别处理 */
+  input, button {
+    /* 确保可触控区域 */
+    min-height: 8vh;
+    
+    /* 动态字体大小 */
+    font-size: calc(16px + 0.3vw) !important;
+    
+    /* 覆盖浏览器默认缩放 */
+    transform: scale(1);
+    transform-origin: left center;
+  }
+
+  /* 表格文本优化 */
+  td, th {
+    font-size: clamp(12px, 2vmin, 14px);
+  }
+}
+
+/* Safari 特别优化 */
+@supports (-webkit-touch-callout: none) {
+  @media (orientation: landscape) {
+    input {
+      font-size: 16px; /* 固定大小确保可读性 */
+    }
+  }
+}
     </style>
     
 </head>
