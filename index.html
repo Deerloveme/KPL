@@ -6,6 +6,13 @@
     <meta property="og:title" content="KPL选手猜猜猜">
     <meta property="og:image" content="https://你的域名/images/og-image.jpg">
     <meta charset="UTF-8">
+    <meta name="viewport" 
+      content="width=device-width, 
+               initial-scale=1.0, 
+               maximum-scale=1.0, 
+               minimum-scale=1.0, 
+               user-scalable=no, 
+               viewport-fit=cover">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KPL选手猜猜猜</title>
     <style>
@@ -399,6 +406,116 @@
     }
   }
 }
+
+/* 横屏强制布局 */
+@media (orientation: landscape) {
+  body {
+    /* 锁定布局方向 */
+    transform: rotate(0deg);
+    -webkit-transform: rotate(0deg);
+    
+    /* 弹性布局适配 */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .game-panel {
+    /* 高度适配 */
+    flex: 1;
+    min-height: calc(100vh - 40px);
+    overflow-y: auto;
+  }
+
+  /* 输入框组优化 */
+  .controls {
+    flex-wrap: nowrap;
+    gap: 8px;
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding: 8px 0;
+    z-index: 100;
+  }
+}
+
+/* 竖屏特定样式 */
+@media (orientation: portrait) {
+  .controls {
+    flex-wrap: wrap;
+  }
+}
+
+/* 横屏表格优化 */
+@media (orientation: landscape) {
+  #historyTable {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(80px, 1fr));
+    overflow-x: visible;
+    
+    tr {
+      display: contents;
+    }
+    
+    td, th {
+      min-width: 80px;
+      word-break: keep-all;
+      padding: 6px;
+    }
+  }
+
+  /* 选手图鉴网格适配 */
+  .gallery-grid {
+    grid-template-columns: repeat(6, minmax(70px, 1fr));
+  }
+}
+
+/* 通用移动端优化 */
+@media (max-width: 767px) {
+  .player-card {
+    padding: 5px;
+    
+    img {
+      width: 50px !important;
+      height: 50px !important;
+    }
+    
+    p {
+      font-size: 12px;
+    }
+  }
+  
+  /* 工具栏按钮紧凑布局 */
+  .toolbar button {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+}
+    /* iOS横屏修复 */
+@supports (-webkit-touch-callout: none) {
+  @media (orientation: landscape) {
+    body {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    .game-panel {
+      -webkit-overflow-scrolling: touch;
+      overflow-y: scroll;
+      padding-bottom: 80px; /* 给底部控件留空间 */
+    }
+  }
+}
+
+/* 安卓键盘弹出适配 */
+@media (orientation: landscape) and (max-height: 400px) {
+  input:focus {
+    transform: translateY(-50%);
+  }
+}
+
     </style>
     
 </head>
@@ -519,6 +636,27 @@
     
     <script>
         
+        // 方向变化监听
+function handleOrientation() {
+  const isLandscape = window.matchMedia("(orientation: landscape)").matches;
+  
+  document.body.classList.toggle('landscape-mode', isLandscape);
+  document.body.classList.toggle('portrait-mode', !isLandscape);
+
+  // 安卓设备额外处理
+  if (/Android/.test(navigator.userAgent)) {
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      document.documentElement.style.height = `${window.innerHeight}px`;
+    }, 300);
+  }
+}
+
+// 初始化监听
+window.addEventListener('resize', handleOrientation);
+window.addEventListener('orientationchange', handleOrientation);
+handleOrientation(); // 初始执行
+
         // 在showGallery函数中添加点击绑定
 function showGallery() {
     closeModals();
@@ -771,7 +909,20 @@ function closeModals() {
     document.getElementById('modalOverlay').style.display = 'none';
 }
 
-    
+    // 禁用双击缩放
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (event) => {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 300) {
+    event.preventDefault();
+  }
+  lastTouchEnd = now;
+}, false);
+
+// 禁用双指缩放
+document.addEventListener('gesturestart', (e) => {
+  e.preventDefault();
+});
 
         // 启动游戏
         initGame();
