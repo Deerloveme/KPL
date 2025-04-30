@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 在index.html头部添加SEO优化 -->
+    <meta name="description" content="KPL选手属性猜猜猜游戏，测试你对选手的熟悉程度！">
+    <meta property="og:title" content="KPL选手猜猜猜">
+    <meta property="og:image" content="https://你的域名/images/og-image.jpg">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPL选手猜猜猜</title>
+    <style>
+
+        :root {
+            --primary-color: #2196F3;
+            --success-color: #4CAF50;
+            --danger-color: #f44336;
+            --background-color: #faf5f5;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0 auto;
+            padding: 20px;
+            max-width: 1000px;
+            background-color: var(--background-color);
+        }
+
+        .game-panel {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .controls {
+            margin: 25px 0;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        input {
+            padding: 12px;
+            width: 220px;
+            border: 2px solid var(--primary-color);
+            border-radius: 25px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #ddf57d;
+            min-width: 100px;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .correct { background-color: #C8E6C9 !important; }
+        .incorrect { background-color: #FFCDD2 !important; }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .controls { flex-direction: column; }
+            input, button { width: 100%; }
+            table { display: block; overflow-x: auto; }
+            th, td { padding: 10px; font-size: 14px; }
+        }
+
+         /* 模态框样式 */
+         .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            z-index: 1001;
+            max-width: 400px;
+            width: 90%;
+            animation: modalFadeIn 0.3s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translate(-50%, -55%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            backdrop-filter: blur(3px);
+        }
+
+        /* 设置滑块样式 */
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .slider-container input[type="range"] {
+            flex: 1;
+            height: 8px;
+            -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+            background: #ddd;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .slider-value {
+            width: 40px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        /* 图鉴加载状态 */
+        .gallery-loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            font-size: 18px;
+            color: #666;
+        }
+
+        /* 新增工具栏样式 */
+        .toolbar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .toolbar button {
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        /* 新增设置模态框样式 */
+        .settings-modal {
+            max-width: 300px;
+        }
+
+        .settings-content {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .settings-content label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .player-profile img {
+    width: 80px;       /* 调整为更小尺寸（原为120px） */
+    height: 80px;      /* 保持一致 */
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 10px;
+    border: 2px solid var(--primary-color); /* 保留边框强调 */
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1); /* 可选：微调阴影 */
+    }
+
+    /* 选手图鉴样式 */
+    .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 15px;
+        padding: 15px 0;
+    }
+
+    .player-card {
+        text-align: center;
+        padding: 10px;
+        border-radius: 8px;
+        background: #f5f5f5;
+        cursor: pointer;
+        transition: transform 0.3s;
+    }
+
+    .player-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .player-card img {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-bottom: 8px;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .player-card p {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 500;
+        color: #333;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    </style>
+    
+</head>
+<body>
+
+    <div class="modal" id="answerModal">
+        <div class="player-profile">
+            <img id="profileImg" src="default.jpg" alt="选手头像" 
+                 onerror="this.src='default.jpg'">
+            <h3 id="profileName"></h3>
+            <div class="profile-details">
+                <p>🆔 真实姓名: <span id="profileRealName">未知</span></p>
+                <p>🎂 年龄: <span id="profileAge">未知</span></p>
+                <p>🏠 战队: <span id="profileTeam">未知</span></p>
+                <p>📍 位置: <span id="profilePosition">未知</span></p>
+                <p>🏆 冠军数: <span id="profileChampionships">未知</span></p>
+                <p>🎖️ FMVP: <span id="profileFmvp">未知</span></p>
+            </div>
+        </div>
+        <button onclick="closeModals()">关闭</button>
+    </div>
+
+    <div class="game-panel">
+        <!-- 新增工具栏 -->
+        <div class="toolbar">
+            <button onclick="showRules()">📖 规则</button>
+            <button onclick="showSettings()">⚙️ 设置</button>
+            <button onclick="showGallery()">🌟 图鉴</button>
+        </div>
+        
+         <!-- 主内容 -->
+         <h2>KPL选手猜猜猜</h2>
+
+        <div class="controls">
+            <input type="text" placeholder="输入选手ID" id="playerInput" list="playerList">
+            <datalist id="playerList"></datalist>
+            <button onclick="handleGuess()">提交猜测</button>
+            <button onclick="fullResetGame()" style="background: var(--danger-color)">重新开始</button>
+        </div>
+
+        <div class="stats">
+            <p>本轮猜测：<span id="guessCount">0</span>/10</p>
+            <p>连续猜对：<span id="correctStreak">0</span> 次</p>
+        </div>
+
+        <div class="success-panel" id="successPanel">
+            <h3>🎉 猜对啦！</h3>
+            <button onclick="softReset()">继续挑战（保持连胜）</button>
+        </div>
+
+        <table id="historyTable">
+            <tr>
+                <th>选手ID</th>
+                <th>年龄</th>
+                <th>战队</th>
+                <th>冠军数</th>
+                <th>FMVP</th>
+            </tr>
+        </table>
+
+        
+
+        <!-- 选手信息模态框 -->
+        <div class="modal" id="answerModal">
+            <div class="player-profile">
+                <img id="profileImg" src="default.jpg" alt="选手头像">
+                <h3 id="profileName"></h3>
+                <div class="profile-details">
+                    <p>🏆 冠军数: <span id="profileChampionships"></span></p>
+                    <p>🎖️ FMVP: <span id="profileFmvp"></span></p>
+                    <p>🏠 战队: <span id="profileTeam"></span></p>
+                    <p>🎂 年龄: <span id="profileAge"></span></p>
+                </div>
+            </div>
+            <button onclick="closeModal()">关闭</button>
+        </div>
+        <div class="modal-overlay" id="modalOverlay"></div>
+
+       <!-- 新增规则模态框 -->
+        <div class="modal" id="rulesModal">
+            <h3>游戏规则</h3>
+            <div class="rules-content">
+                <p>🎮 玩法说明：</p>
+                <ol>
+                    <li>通过选手属性猜测目标选手</li>
+                    <li>每次猜测后获得属性对比反馈</li>
+                    <li>绿色表示正确，红色表示错误</li>
+                    <li>在指定次数内猜中即获胜</li>
+                </ol>
+            </div>
+            <button onclick="closeModals()" style="margin-top:15px">关闭</button>
+        </div>
+
+        <!-- 新增设置模态框 -->
+        <div class="modal settings-modal" id="settingsModal">
+            <h3>游戏设置</h3>
+            <div class="settings-content">
+                <label>
+                    最大猜测次数：
+                    <input type="number" id="maxGuesses" min="5" max="20" value="10">
+                </label>
+                <button onclick="saveSettings()">保存设置</button>
+            </div>
+        </div>
+
+        <!-- 新增选手图鉴模态框 -->
+        <div class="modal" id="galleryModal">
+            <h3>选手图鉴</h3>
+            <div class="gallery-grid" id="galleryContent"></div>
+            <button onclick="closeModals()" style="margin-top:15px">关闭</button>
+        </div>
+
+    </div>
+
+    
+    <script src="data.js"></script>
+
+    
+    <script>
+        
+        // 在showGallery函数中添加点击绑定
+function showGallery() {
+    closeModals();
+    const gallery = document.getElementById('galleryContent');
+    gallery.innerHTML = players.map(player => `
+        <div class="player-card" onclick="showPlayerDetail('${player.name}')">
+            <img src="${player.img || 'default.jpg'}" 
+                 alt="${player.name}"
+                 onerror="this.src='default.jpg'">
+            <p>${player.name}</p>
+        </div>
+    `).join('');
+    
+    document.getElementById('galleryModal').style.display = 'block';
+    document.getElementById('modalOverlay').style.display = 'block';
+}
+
+// 新增选手详情展示函数
+function showPlayerDetail(playerName) {
+    const player = players.find(p => p.name === playerName);
+    if (!player) return;
+
+    // 填充数据
+    document.getElementById('profileName').textContent = player.name;
+    document.getElementById('profileRealName').textContent = player.realName || '未知';
+    document.getElementById('profileAge').textContent = player.age || '未知';
+    document.getElementById('profileTeam').textContent = player.team || '未知';
+    document.getElementById('profilePosition').textContent = player.position || '未知';
+    document.getElementById('profileChampionships').textContent = player.championships || '未知';
+    document.getElementById('profileFmvp').textContent = player.fmvp || '无';
+    
+    // 设置头像
+    const profileImg = document.getElementById('profileImg');
+    profileImg.src = player.img || 'default.jpg';
+    
+    // 显示模态框
+    closeModals();  // 先关闭其他模态框
+    document.getElementById('answerModal').style.display = 'block';
+    document.getElementById('modalOverlay').style.display = 'block';
+}
+
+// 修改后的统一关闭函数
+function closeModals() {
+    document.querySelectorAll('.modal').forEach(m => {
+        m.style.display = 'none';
+    });
+    document.getElementById('modalOverlay').style.display = 'none';
+}
+
+        // 初始化游戏
+        let currentPlayer;
+        let guessCount = 0;
+        let correctStreak = 0;
+        let history = [];
+
+        // DOM元素
+        const playerInput = document.getElementById('playerInput');
+        const datalist = document.getElementById('playerList');
+        
+        // 填充自动补全数据
+        players.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.name;
+            datalist.appendChild(option);
+        });
+
+        // 游戏逻辑
+        function initGame(keepStreak = false) {
+            if (!keepStreak) correctStreak = 0;
+            currentPlayer = players[Math.floor(Math.random() * players.length)];
+            guessCount = 0;
+            history = [];
+            updateStats();
+            clearHistory();
+            playerInput.focus();
+            document.getElementById('successPanel').style.display = 'none';
+            closeModal();
+        }
+
+        function handleGuess() {
+            const guessName = playerInput.value.trim();
+            const player = players.find(p => p.name === guessName);
+
+            if (!player) {
+                alert("⚠️ 未找到该选手");
+                playerInput.value = "";
+                return;
+            }
+
+            guessCount++;
+            history.unshift(createHistoryRecord(player));
+            updateHistoryTable();
+            checkGameStatus(player);
+            playerInput.value = "";
+            updateStats();
+        }
+
+        function createHistoryRecord(guess) {
+            return {
+                isCorrect: guess.name === currentPlayer.name,
+                details: {
+                    name: compareValue(guess.name),
+                    age: compareValue(guess.age, currentPlayer.age, true),
+                    team: compareValue(guess.team, currentPlayer.team),
+                    championships: compareValue(guess.championships, currentPlayer.championships, true),
+                    fmvp: compareValue(guess.fmvp, currentPlayer.fmvp)
+                }
+            };
+        }
+
+        function compareValue(guess, actual, isNumeric = false) {
+            return {
+                value: guess,
+                match: guess === actual,
+                hint: isNumeric ? 
+                    (guess > actual ? "过高" : guess < actual ? "过低" : "正确") : 
+                    (guess === actual ? "匹配" : "不匹配")
+            };
+        }
+
+        function updateHistoryTable() {
+            const table = document.getElementById("historyTable");
+            while(table.rows.length > 1) table.deleteRow(1);
+
+            history.slice(0, 10).forEach(record => {
+                const row = table.insertRow(1);
+                addHistoryCell(row, record.details.name.value, record.isCorrect);
+                ["age", "team", "championships", "fmvp"].forEach(field => {
+                    const cell = row.insertCell();
+                    cell.innerHTML = `${record.details[field].value}<br><small>${record.details[field].hint}</small>`;
+                    cell.className = record.details[field].match ? "correct" : "incorrect";
+                });
+            });
+        }
+
+        function checkGameStatus(guess) {
+            if (guess.name === currentPlayer.name) {
+                correctStreak++;
+                document.getElementById('successPanel').style.display = 'block';
+                showAnswer(true);
+            } else if (guessCount >= 10) {
+                showAnswer(false);
+                initGame();
+            }
+        }
+
+        function showAnswer(isSuccess) {
+            const modal = document.getElementById("answerModal");
+            const overlay = document.getElementById("modalOverlay");
+            
+            document.getElementById("profileName").textContent = currentPlayer.name;
+            document.getElementById("profileImg").src = currentPlayer.img || 'default.jpg';
+            document.getElementById("profileAge").textContent = currentPlayer.age;
+            document.getElementById("profileTeam").textContent = currentPlayer.team;
+            document.getElementById("profileChampionships").textContent = currentPlayer.championships;
+            document.getElementById("profileFmvp").textContent = currentPlayer.fmvp;
+
+            modal.style.display = "block";
+            overlay.style.display = "block";
+            
+            if(!isSuccess) {
+                alert(`正确答案是：${currentPlayer.name}`);
+                initGame();
+            }
+        }
+
+        // 辅助函数
+        function addHistoryCell(row, value, isCorrect = false) {
+            const cell = row.insertCell();
+            cell.textContent = value;
+            if (isCorrect) cell.style.backgroundColor = "#C8E6C9";
+        }
+
+        function updateStats() {
+            document.getElementById("guessCount").textContent = guessCount;
+            document.getElementById("correctStreak").textContent = correctStreak;
+        }
+
+        function clearHistory() {
+            const table = document.getElementById("historyTable");
+            while(table.rows.length > 1) table.deleteRow(1);
+        }
+
+        function closeModal() {
+            document.getElementById("answerModal").style.display = "none";
+            document.getElementById("modalOverlay").style.display = "none";
+        }
+
+        function softReset() {
+            initGame(true);
+            closeModal();
+        }
+
+        function fullResetGame() {
+            if(confirm("确定要重新开始吗？当前连胜将会清零！")) {
+                correctStreak = 0;
+                initGame();
+            }
+        }
+
+        // 事件监听
+        playerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleGuess();
+        });
+
+        document.getElementById('modalOverlay').addEventListener('click', closeModals);
+
+        // 显示规则模态框
+function showRules() {
+    closeModals();
+    document.getElementById('rulesModal').style.display = 'block';
+    document.getElementById('modalOverlay').style.display = 'block';
+}
+
+// 显示设置模态框
+function showSettings() {
+    closeModals();
+    document.getElementById('settingsModal').style.display = 'block';
+    document.getElementById('modalOverlay').style.display = 'block';
+}
+
+// 显示选手图鉴
+function showGallery() {
+    closeModals();
+    const gallery = document.getElementById('galleryContent');
+    gallery.innerHTML = players.map(player => `
+        <div class="player-card" onclick="showPlayerDetail('${player.name}')">
+            <img src="${player.img || 'default.jpg'}" alt="${player.name}" 
+                 onerror="this.src='default.jpg'"
+                 style="width:60px;height:60px;border-radius:50%">
+            <p>${player.name}</p>
+        </div>
+    `).join('');
+    
+    document.getElementById('galleryModal').style.display = 'block';
+    document.getElementById('modalOverlay').style.display = 'block';
+}
+
+// 关闭单个模态框（用于选手信息）
+function closeModal() {
+    document.getElementById('answerModal').style.display = "none";
+    document.getElementById('modalOverlay').style.display = "none";
+}
+
+// 统一关闭函数
+function closeModals() {
+    document.querySelectorAll('.modal').forEach(m => {
+        m.style.display = 'none';
+    });
+    document.getElementById('modalOverlay').style.display = 'none';
+}
+
+    
+
+        // 启动游戏
+        initGame();
+    </script>
+
+
+</body>
+</html>
