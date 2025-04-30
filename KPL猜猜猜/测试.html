@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+    <!-- 在index.html头部添加SEO优化 -->
+    <meta name="description" content="KPL选手属性猜猜猜游戏，测试你对选手的熟悉程度！">
+    <meta property="og:title" content="KPL选手猜猜猜">
+    <meta property="og:image" content="https://你的域名/images/og-image.jpg">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KPL选手猜猜猜</title>
     <style>
+
         :root {
             --primary-color: #2196F3;
             --success-color: #4CAF50;
@@ -90,8 +95,8 @@
             th, td { padding: 10px; font-size: 14px; }
         }
 
-        /* 模态框样式 */
-        .modal {
+         /* 模态框样式 */
+         .modal {
             display: none;
             position: fixed;
             top: 50%;
@@ -104,6 +109,12 @@
             z-index: 1001;
             max-width: 400px;
             width: 90%;
+            animation: modalFadeIn 0.3s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translate(-50%, -55%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
         }
 
         .modal-overlay {
@@ -115,34 +126,174 @@
             bottom: 0;
             background: rgba(0,0,0,0.5);
             z-index: 1000;
+            backdrop-filter: blur(3px);
         }
 
-        .player-profile {
+        /* 设置滑块样式 */
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .slider-container input[type="range"] {
+            flex: 1;
+            height: 8px;
+            -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+            background: #ddd;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .slider-value {
+            width: 40px;
             text-align: center;
-            padding: 20px;
+            font-weight: bold;
+        }
+
+        /* 图鉴加载状态 */
+        .gallery-loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            font-size: 18px;
+            color: #666;
+        }
+
+        /* 新增工具栏样式 */
+        .toolbar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .toolbar button {
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        /* 新增设置模态框样式 */
+        .settings-modal {
+            max-width: 300px;
+        }
+
+        .settings-content {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .settings-content label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .player-profile img {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-bottom: 15px;
-        }
+    width: 80px;       /* 调整为更小尺寸（原为120px） */
+    height: 80px;      /* 保持一致 */
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 10px;
+    border: 2px solid var(--primary-color); /* 保留边框强调 */
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1); /* 可选：微调阴影 */
+    }
 
-        .success-panel {
-            background: #C8E6C9;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            display: none;
-        }
+    /* 选手图鉴样式 */
+    .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 15px;
+        padding: 15px 0;
+    }
+
+    .player-card {
+        text-align: center;
+        padding: 10px;
+        border-radius: 8px;
+        background: #f5f5f5;
+        cursor: pointer;
+        transition: transform 0.3s;
+    }
+
+    .player-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .player-card img {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-bottom: 8px;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .player-card p {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 500;
+        color: #333;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
     </style>
+    
 </head>
 <body>
+
+    <div class="modal" id="answerModal">
+        <div class="player-profile">
+            <img id="profileImg" src="default.jpg" alt="选手头像" 
+                 onerror="this.src='default.jpg'">
+            <h3 id="profileName"></h3>
+            <div class="profile-details">
+                <p>🆔 真实姓名: <span id="profileRealName">未知</span></p>
+                <p>🎂 年龄: <span id="profileAge">未知</span></p>
+                <p>🏠 战队: <span id="profileTeam">未知</span></p>
+                <p>📍 位置: <span id="profilePosition">未知</span></p>
+                <p>🏆 冠军数: <span id="profileChampionships">未知</span></p>
+                <p>🎖️ FMVP: <span id="profileFmvp">未知</span></p>
+            </div>
+        </div>
+        <button onclick="closeModals()">关闭</button>
+    </div>
+
     <div class="game-panel">
-        <h2>KPL选手猜猜猜</h2>
+        <!-- 新增工具栏 -->
+        <div class="toolbar">
+            <button onclick="showRules()">📖 规则</button>
+            <button onclick="showSettings()">⚙️ 设置</button>
+            <button onclick="showGallery()">🌟 图鉴</button>
+        </div>
         
+         <!-- 主内容 -->
+         <h2>KPL选手猜猜猜</h2>
+
         <div class="controls">
             <input type="text" placeholder="输入选手ID" id="playerInput" list="playerList">
             <datalist id="playerList"></datalist>
@@ -170,6 +321,8 @@
             </tr>
         </table>
 
+        
+
         <!-- 选手信息模态框 -->
         <div class="modal" id="answerModal">
             <div class="player-profile">
@@ -182,13 +335,101 @@
                     <p>🎂 年龄: <span id="profileAge"></span></p>
                 </div>
             </div>
-            <button onclick="closeModal()" style="margin-top:15px;width:100%">关闭</button>
+            <button onclick="closeModal()">关闭</button>
         </div>
         <div class="modal-overlay" id="modalOverlay"></div>
+
+       <!-- 新增规则模态框 -->
+        <div class="modal" id="rulesModal">
+            <h3>游戏规则</h3>
+            <div class="rules-content">
+                <p>🎮 玩法说明：</p>
+                <ol>
+                    <li>通过选手属性猜测目标选手</li>
+                    <li>每次猜测后获得属性对比反馈</li>
+                    <li>绿色表示正确，红色表示错误</li>
+                    <li>在指定次数内猜中即获胜</li>
+                </ol>
+            </div>
+            <button onclick="closeModals()" style="margin-top:15px">关闭</button>
+        </div>
+
+        <!-- 新增设置模态框 -->
+        <div class="modal settings-modal" id="settingsModal">
+            <h3>游戏设置</h3>
+            <div class="settings-content">
+                <label>
+                    最大猜测次数：
+                    <input type="number" id="maxGuesses" min="5" max="20" value="10">
+                </label>
+                <button onclick="saveSettings()">保存设置</button>
+            </div>
+        </div>
+
+        <!-- 新增选手图鉴模态框 -->
+        <div class="modal" id="galleryModal">
+            <h3>选手图鉴</h3>
+            <div class="gallery-grid" id="galleryContent"></div>
+            <button onclick="closeModals()" style="margin-top:15px">关闭</button>
+        </div>
+
     </div>
+
+    
     <script src="data.js"></script>
+
+    
     <script>
         
+        // 在showGallery函数中添加点击绑定
+function showGallery() {
+    closeModals();
+    const gallery = document.getElementById('galleryContent');
+    gallery.innerHTML = players.map(player => `
+        <div class="player-card" onclick="showPlayerDetail('${player.name}')">
+            <img src="${player.img || 'default.jpg'}" 
+                 alt="${player.name}"
+                 onerror="this.src='default.jpg'">
+            <p>${player.name}</p>
+        </div>
+    `).join('');
+    
+    document.getElementById('galleryModal').style.display = 'block';
+    document.getElementById('modalOverlay').style.display = 'block';
+}
+
+// 新增选手详情展示函数
+function showPlayerDetail(playerName) {
+    const player = players.find(p => p.name === playerName);
+    if (!player) return;
+
+    // 填充数据
+    document.getElementById('profileName').textContent = player.name;
+    document.getElementById('profileRealName').textContent = player.realName || '未知';
+    document.getElementById('profileAge').textContent = player.age || '未知';
+    document.getElementById('profileTeam').textContent = player.team || '未知';
+    document.getElementById('profilePosition').textContent = player.position || '未知';
+    document.getElementById('profileChampionships').textContent = player.championships || '未知';
+    document.getElementById('profileFmvp').textContent = player.fmvp || '无';
+    
+    // 设置头像
+    const profileImg = document.getElementById('profileImg');
+    profileImg.src = player.img || 'default.jpg';
+    
+    // 显示模态框
+    closeModals();  // 先关闭其他模态框
+    document.getElementById('answerModal').style.display = 'block';
+    document.getElementById('modalOverlay').style.display = 'block';
+}
+
+// 修改后的统一关闭函数
+function closeModals() {
+    document.querySelectorAll('.modal').forEach(m => {
+        m.style.display = 'none';
+    });
+    document.getElementById('modalOverlay').style.display = 'none';
+}
+
         // 初始化游戏
         let currentPlayer;
         let guessCount = 0;
@@ -345,10 +586,59 @@
             if (e.key === 'Enter') handleGuess();
         });
 
-        document.getElementById('modalOverlay').addEventListener('click', closeModal);
+        document.getElementById('modalOverlay').addEventListener('click', closeModals);
+
+        // 显示规则模态框
+function showRules() {
+    closeModals();
+    document.getElementById('rulesModal').style.display = 'block';
+    document.getElementById('modalOverlay').style.display = 'block';
+}
+
+// 显示设置模态框
+function showSettings() {
+    closeModals();
+    document.getElementById('settingsModal').style.display = 'block';
+    document.getElementById('modalOverlay').style.display = 'block';
+}
+
+// 显示选手图鉴
+function showGallery() {
+    closeModals();
+    const gallery = document.getElementById('galleryContent');
+    gallery.innerHTML = players.map(player => `
+        <div class="player-card" onclick="showPlayerDetail('${player.name}')">
+            <img src="${player.img || 'default.jpg'}" alt="${player.name}" 
+                 onerror="this.src='default.jpg'"
+                 style="width:60px;height:60px;border-radius:50%">
+            <p>${player.name}</p>
+        </div>
+    `).join('');
+    
+    document.getElementById('galleryModal').style.display = 'block';
+    document.getElementById('modalOverlay').style.display = 'block';
+}
+
+// 关闭单个模态框（用于选手信息）
+function closeModal() {
+    document.getElementById('answerModal').style.display = "none";
+    document.getElementById('modalOverlay').style.display = "none";
+}
+
+// 统一关闭函数
+function closeModals() {
+    document.querySelectorAll('.modal').forEach(m => {
+        m.style.display = 'none';
+    });
+    document.getElementById('modalOverlay').style.display = 'none';
+}
+
+    
 
         // 启动游戏
         initGame();
     </script>
+
+
 </body>
 </html>
